@@ -3,7 +3,7 @@ from PIL import Image
 import io
 from telebot import types
 
-TOKEN = 'MyToken'
+TOKEN = '7777301820:AAEX7QA0WlwY1U8OXTZk5uJIs2t1hMf9qVM'
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -13,6 +13,13 @@ DEFAULT_ASCII_CHARS = '@%#*+=-:. '
 
 
 def resize_image(image, new_width=100):
+    """
+    Изменяет размер изображения, сохраняя пропорции.
+
+    :param image: Объект изображения PIL.
+    :param new_width: Новая ширина изображения.
+    :return: Объект изображения PIL с новым размером.
+    """
     width, height = image.size
     ratio = height / width
     new_height = int(new_width * ratio)
@@ -20,10 +27,24 @@ def resize_image(image, new_width=100):
 
 
 def grayify(image):
+    """
+    Преобразует изображение в оттенки серого.
+
+    :param image: Объект изображения PIL.
+    :return: Объект изображения PIL в оттенках серого.
+    """
     return image.convert("L")
 
 
 def image_to_ascii(image_stream, new_width=40, ascii_chars=DEFAULT_ASCII_CHARS):
+    """
+    Преобразует изображение в ASCII-арт.
+
+    :param image_stream: Поток данных изображения.
+    :param new_width: Новая ширина изображения.
+    :param ascii_chars: Набор символов для ASCII-арта.
+    :return: Строка с ASCII-артом.
+    """
     # Переводим в оттенки серого
     image = Image.open(image_stream).convert('L')
 
@@ -48,6 +69,13 @@ def image_to_ascii(image_stream, new_width=40, ascii_chars=DEFAULT_ASCII_CHARS):
 
 
 def pixels_to_ascii(image, ascii_chars):
+    """
+    Преобразует пиксели изображения в символы ASCII.
+
+    :param image: Объект изображения PIL.
+    :param ascii_chars: Набор символов для ASCII-арта.
+    :return: Строка с символами ASCII.
+    """
     pixels = image.getdata()
     characters = ""
     for pixel in pixels:
@@ -57,6 +85,13 @@ def pixels_to_ascii(image, ascii_chars):
 
 # Огрубляем изображение
 def pixelate_image(image, pixel_size):
+    """
+    Пикселизирует изображение.
+
+    :param image: Объект изображения PIL.
+    :param pixel_size: Размер пикселя.
+    :return: Объект изображения PIL с эффектом пикселизации.
+    """
     image = image.resize(
         (image.size[0] // pixel_size, image.size[1] // pixel_size),
         Image.NEAREST
@@ -70,17 +105,32 @@ def pixelate_image(image, pixel_size):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
+    """
+    Обрабатывает команды /start и /help.
+
+    :param message: Объект сообщения от пользователя.
+    """
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
 
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
+    """
+    Обрабатывает полученное изображение и запрашивает набор символов для ASCII-арта.
+
+    :param message: Объект сообщения от пользователя.
+    """
     bot.reply_to(message, "I got your photo! Please send me the set of characters you'd like to use for ASCII art.")
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id, 'ascii_chars': None}
 
 
 @bot.message_handler(func=lambda message: message.text and message.chat.id in user_states and user_states[message.chat.id]['ascii_chars'] is None)
 def handle_ascii_chars(message):
+    """
+    Обрабатывает набор символов, предоставленный пользователем.
+
+    :param message: Объект сообщения от пользователя.
+    """
     ascii_chars = message.text
     user_states[message.chat.id]['ascii_chars'] = ascii_chars
     bot.reply_to(message, "Got it! Please choose what you'd like to do with your image.",
@@ -88,6 +138,11 @@ def handle_ascii_chars(message):
 
 
 def get_options_keyboard():
+    """
+    Создает клавиатуру с опциями для обработки изображения.
+
+    :return: Объект клавиатуры.
+    """
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
@@ -97,6 +152,11 @@ def get_options_keyboard():
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    """
+    Обрабатывает нажатия на кнопки клавиатуры.
+
+    :param call: Объект callback-запроса.
+    """
     if call.data == "pixelate":
         bot.answer_callback_query(call.id, "Pixelating your image...")
         pixelate_and_send(call.message)
@@ -106,6 +166,11 @@ def callback_query(call):
 
 
 def pixelate_and_send(message):
+    """
+    Пикселизирует изображение и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -121,6 +186,11 @@ def pixelate_and_send(message):
 
 
 def ascii_and_send(message):
+    """
+    Преобразует изображение в ASCII-арт и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
     photo_id = user_states[message.chat.id]['photo']
     ascii_chars = user_states[message.chat.id]['ascii_chars']
     file_info = bot.get_file(photo_id)
