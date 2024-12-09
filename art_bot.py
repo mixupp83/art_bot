@@ -1,5 +1,5 @@
 import telebot
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 from telebot import types
 
@@ -83,7 +83,6 @@ def pixels_to_ascii(image, ascii_chars):
     return characters
 
 
-# Огрубляем изображение
 def pixelate_image(image, pixel_size):
     """
     Пикселизирует изображение.
@@ -101,6 +100,16 @@ def pixelate_image(image, pixel_size):
         Image.NEAREST
     )
     return image
+
+
+def invert_colors(image):
+    """
+    Инвертирует цвета изображения.
+
+    :param image: Объект изображения PIL.
+    :return: Объект изображения PIL с инвертированными цветами.
+    """
+    return ImageOps.invert(image)
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -146,7 +155,8 @@ def get_options_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
-    keyboard.add(pixelate_btn, ascii_btn)
+    invert_btn = types.InlineKeyboardButton("Invert Colors", callback_data="invert")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn)
     return keyboard
 
 
@@ -163,6 +173,9 @@ def callback_query(call):
     elif call.data == "ascii":
         bot.answer_callback_query(call.id, "Converting your image to ASCII art...")
         ascii_and_send(call.message)
+    elif call.data == "invert":
+        bot.answer_callback_query(call.id, "Inverting colors of your image...")
+        invert_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -199,6 +212,26 @@ def ascii_and_send(message):
     image_stream = io.BytesIO(downloaded_file)
     ascii_art = image_to_ascii(image_stream, ascii_chars=ascii_chars)
     bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
+
+
+def invert_and_send(message):
+    """
+    Инвертирует цвета изображения и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    inverted = invert_colors(image)
+
+    output_stream = io.BytesIO()
+    inverted.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
 
 
 bot.polling(none_stop=True)
