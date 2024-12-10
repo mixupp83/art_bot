@@ -3,7 +3,7 @@ from PIL import Image, ImageOps
 import io
 from telebot import types
 
-TOKEN = 'MyToken'
+TOKEN = '7777301820:AAEX7QA0WlwY1U8OXTZk5uJIs2t1hMf9qVM'
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -112,6 +112,22 @@ def invert_colors(image):
     return ImageOps.invert(image)
 
 
+def mirror_image(image, mode):
+    """
+    Отражает изображение по горизонтали или вертикали.
+
+    :param image: Объект изображения PIL.
+    :param mode: Режим отражения (Image.FLIP_LEFT_RIGHT или Image.FLIP_TOP_BOTTOM).
+    :return: Объект изображения PIL с отраженным изображением.
+    """
+    if mode == "horizontal":
+        return image.transpose(Image.FLIP_LEFT_RIGHT)
+    elif mode == "vertical":
+        return image.transpose(Image.FLIP_TOP_BOTTOM)
+    else:
+        raise ValueError("Invalid mirror mode")
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     """
@@ -156,7 +172,9 @@ def get_options_keyboard():
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
     invert_btn = types.InlineKeyboardButton("Invert Colors", callback_data="invert")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn)
+    mirror_horizontal_btn = types.InlineKeyboardButton("Mirror Horizontal", callback_data="mirror_horizontal")
+    mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn)
     return keyboard
 
 
@@ -176,6 +194,12 @@ def callback_query(call):
     elif call.data == "invert":
         bot.answer_callback_query(call.id, "Inverting colors of your image...")
         invert_and_send(call.message)
+    elif call.data == "mirror_horizontal":
+        bot.answer_callback_query(call.id, "Mirroring your image horizontally...")
+        mirror_and_send(call.message, "horizontal")
+    elif call.data == "mirror_vertical":
+        bot.answer_callback_query(call.id, "Mirroring your image vertically...")
+        mirror_and_send(call.message, "vertical")
 
 
 def pixelate_and_send(message):
@@ -230,6 +254,27 @@ def invert_and_send(message):
 
     output_stream = io.BytesIO()
     inverted.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
+def mirror_and_send(message, mode):
+    """
+    Отражает изображение по горизонтали или вертикали и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    :param mode: Режим отражения (horizontal или vertical).
+    """
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    mirrored = mirror_image(image, mode)
+
+    output_stream = io.BytesIO()
+    mirrored.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
