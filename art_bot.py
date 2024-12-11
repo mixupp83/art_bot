@@ -128,6 +128,20 @@ def mirror_image(image, mode):
         raise ValueError("Invalid mirror mode")
 
 
+def convert_to_heatmap(image):
+    """
+    Преобразует изображение в тепловую карту.
+
+    :param image: Объект изображения PIL.
+    :return: Объект изображения PIL с тепловой картой.
+    """
+    # Преобразуем изображение в оттенки серого
+    gray_image = grayify(image)
+    # Применяем цветовую палитру для создания тепловой карты
+    heatmap = ImageOps.colorize(gray_image, black="blue", white="red")
+    return heatmap
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     """
@@ -174,7 +188,8 @@ def get_options_keyboard():
     invert_btn = types.InlineKeyboardButton("Invert Colors", callback_data="invert")
     mirror_horizontal_btn = types.InlineKeyboardButton("Mirror Horizontal", callback_data="mirror_horizontal")
     mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn)
+    heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn)
     return keyboard
 
 
@@ -200,6 +215,9 @@ def callback_query(call):
     elif call.data == "mirror_vertical":
         bot.answer_callback_query(call.id, "Mirroring your image vertically...")
         mirror_and_send(call.message, "vertical")
+    elif call.data == "heatmap":
+        bot.answer_callback_query(call.id, "Converting your image to a heatmap...")
+        heatmap_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -275,6 +293,26 @@ def mirror_and_send(message, mode):
 
     output_stream = io.BytesIO()
     mirrored.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
+def heatmap_and_send(message):
+    """
+    Преобразует изображение в тепловую карту и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    heatmap = convert_to_heatmap(image)
+
+    output_stream = io.BytesIO()
+    heatmap.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
