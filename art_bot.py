@@ -181,7 +181,9 @@ def handle_photo(message):
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id, 'ascii_chars': None}
 
 
-@bot.message_handler(func=lambda message: message.text and message.chat.id in user_states and user_states[message.chat.id]['ascii_chars'] is None)
+@bot.message_handler(
+    func=lambda message: message.text and message.chat.id in user_states and user_states[message.chat.id][
+        'ascii_chars'] is None)
 def handle_ascii_chars(message):
     """
     Обрабатывает набор символов, предоставленный пользователем.
@@ -208,7 +210,8 @@ def get_options_keyboard():
     mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
     sticker_btn = types.InlineKeyboardButton("Resize for Sticker", callback_data="sticker")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn, sticker_btn)
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn,
+                 sticker_btn)
     return keyboard
 
 
