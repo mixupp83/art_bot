@@ -142,6 +142,24 @@ def convert_to_heatmap(image):
     return heatmap
 
 
+def resize_for_sticker(image, max_size=512):
+    """
+    Изменяет размер изображения для использования в качестве стикера.
+
+    :param image: Объект изображения PIL.
+    :param max_size: Максимальный размер изображения (по ширине или высоте).
+    :return: Объект изображения PIL с измененным размером.
+    """
+    width, height = image.size
+    if width > height:
+        new_width = max_size
+        new_height = int(height * (max_size / width))
+    else:
+        new_height = max_size
+        new_width = int(width * (max_size / height))
+    return image.resize((new_width, new_height))
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     """
@@ -189,7 +207,8 @@ def get_options_keyboard():
     mirror_horizontal_btn = types.InlineKeyboardButton("Mirror Horizontal", callback_data="mirror_horizontal")
     mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn)
+    sticker_btn = types.InlineKeyboardButton("Resize for Sticker", callback_data="sticker")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn, sticker_btn)
     return keyboard
 
 
@@ -218,6 +237,9 @@ def callback_query(call):
     elif call.data == "heatmap":
         bot.answer_callback_query(call.id, "Converting your image to a heatmap...")
         heatmap_and_send(call.message)
+    elif call.data == "sticker":
+        bot.answer_callback_query(call.id, "Resizing your image for a sticker...")
+        sticker_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -313,6 +335,26 @@ def heatmap_and_send(message):
 
     output_stream = io.BytesIO()
     heatmap.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
+def sticker_and_send(message):
+    """
+    Изменяет размер изображения для использования в качестве стикера и отправляет его пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    resized = resize_for_sticker(image)
+
+    output_stream = io.BytesIO()
+    resized.save(output_stream, format="PNG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
