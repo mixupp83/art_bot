@@ -23,6 +23,18 @@ JOKES = [
     "Зачем скачивать порно-ролик с карликом? Он занимает меньше места."
 ]
 
+# Список комплиментов
+COMPLIMENTS = [
+    "Спасибо, что ты есть.",
+    "Ты просто совершенство.",
+    "Ты - прекрасный друг.",
+    "Мне нравится твой стиль.",
+    "У тебя самый лучший смех.",
+    "Я ценю тебя.",
+    "Мне хватает тебя",
+    "Ты - подарок для окружающих."
+]
+
 
 def resize_image(image, new_width=100):
     """
@@ -193,6 +205,17 @@ def send_random_joke(message):
     bot.reply_to(message, joke)
 
 
+@bot.message_handler(commands=['random_compliment'])
+def send_random_compliment(message):
+    """
+    Отправляет случайный комплимент пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
+    compliment = random.choice(COMPLIMENTS)
+    bot.reply_to(message, compliment)
+
+
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     """
@@ -204,9 +227,7 @@ def handle_photo(message):
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id, 'ascii_chars': None}
 
 
-@bot.message_handler(
-    func=lambda message: message.text and message.chat.id in user_states and user_states[message.chat.id][
-        'ascii_chars'] is None)
+@bot.message_handler(func=lambda message: message.text and message.chat.id in user_states and user_states[message.chat.id]['ascii_chars'] is None)
 def handle_ascii_chars(message):
     """
     Обрабатывает набор символов, предоставленный пользователем.
@@ -233,8 +254,7 @@ def get_options_keyboard():
     mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
     sticker_btn = types.InlineKeyboardButton("Resize for Sticker", callback_data="sticker")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn,
-                 sticker_btn)
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_horizontal_btn, mirror_vertical_btn, heatmap_btn, sticker_btn)
     return keyboard
 
 
