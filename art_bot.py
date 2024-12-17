@@ -216,6 +216,18 @@ def send_random_compliment(message):
     bot.reply_to(message, compliment)
 
 
+@bot.message_handler(commands=['flip_coin'])
+def flip_coin(message):
+    """
+    Симулирует подбрасывание монетки и сообщает результат пользователю.
+
+    :param message: Объект сообщения от пользователя.
+    """
+    # Случайный выбор результата
+    result = random.choice(["Орел", "Решка"])
+    bot.reply_to(message, f"Результат подбрасывания монетки: {result}")
+
+
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     """
